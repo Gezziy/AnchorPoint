@@ -54,6 +54,8 @@ const SortIcon = ({ col, sortKey, dir }: { col: SortKey; sortKey: SortKey; dir: 
 export const TransactionHistory = () => {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | 'All'>('All');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
@@ -70,14 +72,17 @@ export const TransactionHistory = () => {
     return ALL_TRANSACTIONS.filter((tx) => {
       const matchesQuery =
         !q ||
+        tx.id.toLowerCase().includes(q) ||
         tx.type.toLowerCase().includes(q) ||
         tx.asset.toLowerCase().includes(q) ||
         tx.reference.toLowerCase().includes(q) ||
         tx.status.toLowerCase().includes(q);
       const matchesStatus = statusFilter === 'All' || tx.status === statusFilter;
-      return matchesQuery && matchesStatus;
+      const matchesFrom = !dateFrom || tx.date >= dateFrom;
+      const matchesTo = !dateTo || tx.date <= dateTo;
+      return matchesQuery && matchesStatus && matchesFrom && matchesTo;
     });
-  }, [query, statusFilter]);
+  }, [query, statusFilter, dateFrom, dateTo]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -111,11 +116,11 @@ export const TransactionHistory = () => {
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full sm:max-w-sm sm:flex-1">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <input
             type="search"
-            placeholder="Search by type, asset, reference…"
+            placeholder="Search by ID, type, asset, reference…"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             aria-label="Search transactions"
@@ -123,13 +128,32 @@ export const TransactionHistory = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <label htmlFor="date-from" className="sr-only">From date</label>
+          <input
+            id="date-from"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            aria-label="Filter from date"
+            className="input-field w-full text-sm sm:w-auto"
+          />
+          <label htmlFor="date-to" className="sr-only">To date</label>
+          <input
+            id="date-to"
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+            aria-label="Filter to date"
+            className="input-field w-full text-sm sm:w-auto"
+          />
+
           <label htmlFor="status-filter" className="sr-only">Filter by status</label>
           <select
             id="status-filter"
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value as TransactionStatus | 'All'); setPage(1); }}
-            className="input-field text-sm"
+            className="input-field w-full text-sm sm:w-auto"
           >
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
@@ -141,7 +165,7 @@ export const TransactionHistory = () => {
             id="page-size"
             value={pageSize}
             onChange={(e) => { setPageSize(Number(e.target.value) as typeof pageSize); setPage(1); }}
-            className="input-field text-sm"
+            className="input-field w-full text-sm sm:w-auto"
           >
             {PAGE_SIZE_OPTIONS.map((n) => (
               <option key={n} value={n}>{n} / page</option>
@@ -151,8 +175,8 @@ export const TransactionHistory = () => {
       </div>
 
       {/* Table */}
-      <div className="glass-card overflow-x-auto">
-        <table className="w-full text-left" aria-label="Transaction history">
+      <div className="glass-card overflow-x-auto overflow-hidden">
+        <table className="responsive-table w-full text-left" aria-label="Transaction history">
           <caption className="sr-only">
             Transaction history — {sorted.length} result{sorted.length !== 1 ? 's' : ''}
           </caption>
@@ -186,7 +210,7 @@ export const TransactionHistory = () => {
                   key={tx.id}
                   className="transition-colors hover:bg-slate-900/50"
                 >
-                  <td className="flex items-center gap-2 p-4">
+                  <td className="flex items-center gap-2 p-4" data-label="Type">
                     {tx.type === 'Deposit' ? (
                       <ArrowDownLeft size={16} className="text-emerald-400" aria-hidden="true" />
                     ) : (
@@ -194,15 +218,15 @@ export const TransactionHistory = () => {
                     )}
                     {tx.type}
                   </td>
-                  <td className="p-4">{tx.asset}</td>
-                  <td className="p-4 font-mono">${fmtAmount(tx.amount)}</td>
-                  <td className="p-4">
+                  <td className="p-4" data-label="Asset">{tx.asset}</td>
+                  <td className="p-4 font-mono" data-label="Amount">${fmtAmount(tx.amount)}</td>
+                  <td className="p-4" data-label="Status">
                     <TransactionStatusBadge status={tx.status} />
                   </td>
-                  <td className="p-4 text-sm text-slate-400">
+                  <td className="p-4 text-sm text-slate-400" data-label="Date">
                     <time dateTime={tx.date}>{tx.date}</time>
                   </td>
-                  <td className="p-4 font-mono text-xs text-slate-500">{tx.reference}</td>
+                  <td className="p-4 font-mono text-xs text-slate-500" data-label="Reference">{tx.reference}</td>
                 </tr>
               ))
             )}
@@ -211,13 +235,13 @@ export const TransactionHistory = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-slate-400">
+      <div className="flex flex-col gap-3 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
         <span aria-live="polite" aria-atomic="true">
           {sorted.length === 0
             ? 'No results'
             : `Showing ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, sorted.length)} of ${sorted.length}`}
         </span>
-        <div className="flex items-center gap-1" role="navigation" aria-label="Pagination">
+        <div className="flex flex-wrap items-center gap-1" role="navigation" aria-label="Pagination">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={safePage === 1}
