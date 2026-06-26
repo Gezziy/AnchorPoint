@@ -152,7 +152,7 @@ export const TransactionHistory = () => {
 
       {/* Table */}
       <div className="glass-card overflow-x-auto">
-        <table className="w-full text-left" aria-label="Transaction history">
+        <table className="responsive-table w-full text-left" aria-label="Transaction history">
           <caption className="sr-only">
             Transaction history — {sorted.length} result{sorted.length !== 1 ? 's' : ''}
           </caption>
@@ -186,7 +186,7 @@ export const TransactionHistory = () => {
                   key={tx.id}
                   className="transition-colors hover:bg-slate-900/50"
                 >
-                  <td className="flex items-center gap-2 p-4">
+                  <td className="flex items-center gap-2 p-4" data-label="Type">
                     {tx.type === 'Deposit' ? (
                       <ArrowDownLeft size={16} className="text-emerald-400" aria-hidden="true" />
                     ) : (
@@ -194,15 +194,15 @@ export const TransactionHistory = () => {
                     )}
                     {tx.type}
                   </td>
-                  <td className="p-4">{tx.asset}</td>
-                  <td className="p-4 font-mono">${fmtAmount(tx.amount)}</td>
-                  <td className="p-4">
+                  <td className="p-4" data-label="Asset">{tx.asset}</td>
+                  <td className="p-4 font-mono" data-label="Amount">${fmtAmount(tx.amount)}</td>
+                  <td className="p-4" data-label="Status">
                     <TransactionStatusBadge status={tx.status} />
                   </td>
-                  <td className="p-4 text-sm text-slate-400">
+                  <td className="p-4 text-sm text-slate-400" data-label="Date">
                     <time dateTime={tx.date}>{tx.date}</time>
                   </td>
-                  <td className="p-4 font-mono text-xs text-slate-500">{tx.reference}</td>
+                  <td className="p-4 font-mono text-xs text-slate-500" data-label="Reference">{tx.reference}</td>
                 </tr>
               ))
             )}
